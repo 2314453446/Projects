@@ -78,12 +78,17 @@ width = 1920 // 2
 channel = 3
 fps = 30
 cnt = 0
+
+# 设置编码格式
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+# 设置深度图编码格式
+fourccDep=cv2.VideoWriter_fourcc(*'XVID')
 # cv2.VideoWriter_fourcc(*'mp4v')
 # cv2.VideoWriter_fourcc(*'MP42')
 
+h5 = h5py.File(out_dir + out_name + 'depth_map.hdf5','w')#创建空的h5文件
 color_wrapper = cv2.VideoWriter(out_dir + out_name + 'weed30_color0.mp4', fourcc, float(fps), (width, height), True)
-depth_wrapper = cv2.VideoWriter(out_dir + out_name + 'weed30_depth0.mp4', fourcc, float(fps), (512, 424), False)
+depth_wrapper = cv2.VideoWriter(out_dir + out_name + 'weed30_depth_8bit.mp4', fourcc, float(fps), (512, 424), False)#八位深度图
 ir_wrapper = cv2.VideoWriter(out_dir + out_name + 'weed30_ir0.mp4', fourcc, float(fps), (512, 424), False)
 register_wrapper = cv2.VideoWriter(out_dir + out_name + 'weed30_register0.mp4', fourcc, float(fps), (512, 424), True)
 
@@ -104,6 +109,7 @@ while True:
         registration.undistortDepth(depth, undistorted)
 
     if enable_depth:
+        # cv2.imshow()如果输入的数组是float类型， imshow 会将每个像素点数值乘以255
         cv2.imshow("ir0", ir.asarray() / 65535.)
         cv2.imshow("depth0", depth.asarray() / 4500.)
         cv2.imshow("undistorted0", undistorted.asarray(np.float32) / 4500.)
@@ -113,10 +119,17 @@ while True:
     if enable_rgb and enable_depth:
         cv2.imshow("registered0", registered.asarray(np.uint8))
 
+    # 写入数据流
     color_wrapper.write(cv2.resize(color.asarray(), (width, height))[:, :, :-1])
     color_wrapper.write(color.asarray()[:, :, :-1])
-    depth_wrapper.write((depth.asarray() * (255.0 / 4500.0)).clip(0, 255).astype(np.uint8))
+    depth_wrapper.write((depth.asarray() * (255.0 / 4500.0)).clip(0, 255).astype(np.uint8))#写入八位深度图数据流
+    res, depth_map_encode=cv2.imencode('.png',np.asarray(depth.asarray(),np.uint16))
+    print(depth_map_encode)
+    #将深度图传入 res 为bool , 用于判断编码是否成功
+    # .png 的原因，opencv 支持将16位图片写入 .png, .jpg仅能写入8位图片
+    h5[str(cnt)] = depth_map_encode # h5类似字典，即key 对应 data , 并且key 不能重复
     ir_wrapper.write((ir.asarray() * (255.0 / 65535.0)).clip(0, 255).astype(np.uint8))
+
     register_wrapper.write(registered.asarray(np.uint8)[:, :, :-1])
     time_list.append(datetime.datetime.now())
 
@@ -146,3 +159,4 @@ print("save registered video successfully")
 np.save(out_dir + out_name + '_time.npy', time_list)
 print("save time array successfully")
 print("total frame is: ", cnt)
+h5.close()#关闭文件

@@ -81,6 +81,7 @@ while True:
         registration.undistortDepth(depth, undistorted)
 
     if enable_depth:
+        # cv2.imshow()如果输入的数组是float类型， imshow 会将每个像素点数值乘以255
         cv2.imshow("ir", ir.asarray() / 65535.)
         cv2.imshow("depth", depth.asarray() / 4500.)
         cv2.imshow("undistorted", undistorted.asarray(np.float32) / 4500.)

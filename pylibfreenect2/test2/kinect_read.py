@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import os
+import h5py
 
 # 读取像素值坐标
 pixel_x = 512 // 2
@@ -59,16 +60,62 @@ def video2image_multi(video_path, save_path):
         cap.release()
         print('读取第 %s 个视频完成 ！！！' % i)
 
+'''
+h5文件解码存储
+'''
+def h52img(h5_path , h5save_dir='./'):
+    # save_dir :图片需要存入的文件夹
+    h5 = h5py.File(h5_path,'r')
+    os.makedirs(h5save_dir,exist_ok=True)
+    for key in h5.keys():
+        img = cv2.imdecode(np.array(h5[key]),-1)
+        print(img)
+        img_name = os.path.join(h5save_dir,key)  if key.endswith('.png') else os.path.join(h5save_dir, key + '.png')
+        # 判断文件是否以png结尾
+        cv2.imwrite(img_name,img)
 
+'''
+h5解码图片读取显示
+'''
+def h5PngRead(PngImg):
+    img = cv2.imread(PngImg,flags=cv2.IMREAD_UNCHANGED)
+    img2 = img.copy()
+    cv2.circle(img2,(pixel_x,pixel_y),1,(0,255,255),4)
+    cv2.imshow('depthponit',img2)
+    print(img)
+    cv2.waitKey(10000)
+    cv2.destroyAllWindows()
+    depth_value = img[pixel_x,pixel_y]
+    print("坐标{}".format(depth_value))
 
 def read_pixel(img):
     depth_img = cv2.imread(img,cv2.IMREAD_GRAYSCALE)
-    depth_value=depth_img[pixel_x,pixel_x] /255 *4500
+    depth_value=depth_img[pixel_y,pixel_x] /255 *4500
     print("坐标{}".format(depth_value))
+
+
 
 img = r"/home/tuolong/Software/libfreenect2/pylibfreenect2/save/image_depth/4.jpg"
 video_path = r'/home/tuolong/Software/libfreenect2/pylibfreenect2/save/test1026weed180_color0.mp4'
 save_path = r'/home/tuolong/Software/libfreenect2/pylibfreenect2/save/image_depth'
+# h5待解码文件的读取路径
+h5path = r'/home/tuolong/Software/libfreenect2/pylibfreenect2/save/test1026depth_map.hdf5'
+# h5文件读取后.png文件的存储路径
+h5PngSave = r'/home/tuolong/Software/libfreenect2/pylibfreenect2/save/h5Png'
+
+# .png 文件路径
+pngimg = r'/home/tuolong/Software/libfreenect2/pylibfreenect2/save/h5Png/3.png'
+
 if __name__ == '__main__':
-    video2image(video_path,save_path)
+    '''
+    rgb 和 8位深度图读取存储方式
+    '''
+    # video2image(video_path,save_path)
+
+    '''
+    h5 16位.png格式 深度图解码存储方式
+    '''
+    # h52img(h5path,h5PngSave)
+
     # read_pixel(img)
+    h5PngRead(pngimg)
